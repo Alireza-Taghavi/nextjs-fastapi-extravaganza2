@@ -36,18 +36,13 @@ class UserRole(PyEnum):
     GUEST = "guest"
 
 
-class Gender(PyEnum):
-    MALE = "male"
-    FEMALE = "female"
-
-
 # User Model (SQLAlchemy)
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     phone = Column(String(256), unique=True, nullable=False)
-    role = Column(Enum(Gender), default=UserRole.GUEST, nullable=False)
+    role = Column(Enum(UserRole), default=UserRole.GUEST, nullable=False)
     recommended_by = Column(Integer, nullable=True, default=1)  # ID of the recommending user
     quest = Column(String, nullable=True)
     theme = Column(String, nullable=True)
