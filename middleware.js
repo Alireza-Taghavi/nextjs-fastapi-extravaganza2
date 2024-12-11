@@ -14,8 +14,8 @@ export function middleware(request) {
   }
 
   // Protected routes
-  const protectedAdminPaths = ['/admin', '/admin/users', '/admin/settings'];
-  const protectedUserPaths = ['/dashboard', '/profile'];
+  const protectedAdminPaths = ['/admin', '/admin/:path*',];
+  const protectedUserPaths = ['/dashboard/:path*'];
 
   // Check admin routes
   if (protectedAdminPaths.includes(path)) {
@@ -42,6 +42,5 @@ export const config = {
     '/login',
     '/dashboard/:path*',
     '/admin/:path*',
-    '/profile'
   ]
 }
