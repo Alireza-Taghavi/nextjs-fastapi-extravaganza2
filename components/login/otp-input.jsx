@@ -1,19 +1,18 @@
-"use client"
-import React, {useState, useRef, useEffect} from 'react';
-import {motion} from 'framer-motion';
+'use client'
+import React, {useState, useRef} from 'react';
 
 const OTPInput = ({
-                      length = 11,
+                      length = 6,
                       className = '',
-                      disabled = false
+                      disabled = false,
+                      onComplete = () => {
+                      }
                   }) => {
     const [otp, setOTP] = useState(Array(length).fill(''));
     const [validationState, setValidationState] = useState('neutral');
-    const [animationTrigger, setAnimationTrigger] = useState(false);
     const inputRefs = useRef(Array(length).fill(null));
-    const [isCompleted, setIsCompleted] = useState(false)
 
-    async function handleChange(index, value) {
+    const handleChange = async (index, value) => {
         // Validate input to only allow numbers
         if (!/^\d*$/.test(value)) return;
 
@@ -25,44 +24,55 @@ const OTPInput = ({
         if (value && index < length - 1) {
             inputRefs.current[index + 1].focus();
         }
-        if (isCompleted) {
-            setValidationState('neutral');
-            setAnimationTrigger(false);
-            setAnimationTrigger(false);
-        }
 
         // Check if OTP is complete
         if (newOTP.every(digit => digit !== '')) {
-            // Simulate OTP validation (replace with your actual validation logic)
-
-            // Trigger animation and validation state
-            setIsCompleted(true);
-            setAnimationTrigger(true);
-            // setValidationState(isValid ? 'success' : 'error');
-            // alert("test")
-            // Call onComplete callback
-            let response = await fetch('http://localhost:3000/api/py/login/', {
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({phone: newOTP.join('')})
-            })
-            response = await response;
-            if(!response.ok){
-
-            }
-
-            console.log(response)
-
+            await triggerCompletionAnimation(newOTP.join(''));
         }
     };
 
+    const triggerCompletionAnimation = async (value) => {
+        // Sequential focus animation
+        for (let i = 0; i < length; i++) {
+            inputRefs.current[i].classList.add('motion-safe:animate-bounce');
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        // Validate OTP (replace with your actual validation)
+        const isValid = await validateOTP(value);
+
+        // Set final validation state
+        setValidationState(isValid ? 'success' : 'error');
+
+        // Wait a moment before final action
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+
+        for (let i = 0; i < length; i++) {
+            inputRefs.current[i].classList.remove('motion-safe:animate-bounce');
+            await new Promise(resolve => setTimeout(resolve, 50))
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setValidationState("neutral")
+
+        // Call onComplete with validation result
+        onComplete(isValid);
+    };
+
     // Simulated OTP validation function
-    const validateOTP = (otpValue) => {
-        // Example validation: check if OTP is a specific value
-        // Replace with your actual validation logic
-        return otpValue === '09035013471';
+    const validateOTP = async (otpValue) => {
+        // Example validation: you would replace this with your actual validation logic
+        let response = await fetch('http://localhost:3000/api/py/login/', {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({phone: otpValue})
+        })
+        response = await response;
+        console.log(otpValue)
+        return response.ok;
     };
 
     const handleKeyDown = (index, e) => {
@@ -99,52 +109,37 @@ const OTPInput = ({
 
         // Check if OTP is complete
         if (newOTP.every(digit => digit !== '')) {
-            // Simulate OTP validation (replace with your actual validation logic)
-            // const isValid = validateOTP(newOTP.join(''));
-
-            // Trigger animation and validation state
-            setIsCompleted(true)
-            setAnimationTrigger(true);
-            // setValidationState(isValid ? 'success' : 'error');
-            // Call onComplete callback
+            triggerCompletionAnimation();
         }
-    };
-
-    // Reset animation and validation state
-    const resetState = () => {
-        setAnimationTrigger(false);
-        setValidationState('neutral');
-        setOTP(Array(length).fill(''));
-        inputRefs.current[0].focus();
     };
 
     return (
         <div className={`flex items-center gap-2 ${className}`}>
             {otp.map((digit, index) => (
-                    <input
-                        key={index}
-                        ref={el => inputRefs.current[index] = el}
-                        type="text"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleChange(index, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(index, e)}
-                        onPaste={handlePaste}
-                        aria-label={`OTP Digit ${index + 1}`}
-                        className={`
-              w-10 h-10 text-center rounded border 
-              outline-none focus:ring-2 focus:ring-blue-500
-              transition-all duration-300
-              ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-text'}
-              ${animationTrigger
-                            ? (validationState === 'success'
-                                ? 'border-green-500 text-green-700 animate-bounce'
-                                : 'border-red-500 text-red-700 animate-bounce')
+                <input
+                    key={index}
+                    ref={el => inputRefs.current[index] = el}
+                    type="text"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleChange(index, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    onPaste={handlePaste}
+                    aria-label={`Phone digit ${index + 1}`}
+                    className={`
+                        w-10 h-10 text-center rounded border 
+                        outline-none focus:ring-2 focus:ring-blue-500
+                        transition-all duration-300
+                        ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-text'}
+                        ${validationState === 'success'
+                        ? 'border-green-500 text-green-700'
+                        : validationState === 'error'
+                            ? 'border-red-500 text-red-700'
                             : 'border-gray-300 focus:border-blue-500'
-                        }
-            `}
-                        disabled={disabled}
-                    />
+                    }
+                    `}
+                    disabled={disabled}
+                />
             ))}
         </div>
     );
