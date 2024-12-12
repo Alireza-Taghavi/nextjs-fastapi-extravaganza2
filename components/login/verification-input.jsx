@@ -1,13 +1,15 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {useLoginStore} from "../../stores/user";
 
-const VerificationInput = ({ emojis, phone }) => {
+const VerificationInput = () => {
     const router = useRouter();
     const [options, setOptions] = useState([]);
     const [selectedOptions, setSelectedOptions] = useState([]);
     const [attempts, setAttempts] = useState(3);
-
+    const phone = useLoginStore((state) => state.phone)
+    const emojis = useLoginStore((state) => state.emojis)
     // Add this useEffect to set options when emojis prop changes
     useEffect(() => {
         if (emojis && emojis.length > 0) {
@@ -81,7 +83,10 @@ const VerificationInput = ({ emojis, phone }) => {
         }
     };
 
-    return (
+    if (!phone) return <></>
+
+
+    return  (
         <div className="p-4 space-y-4">
             <div className="text-center">
                 <h2 className="text-xl font-bold mb-2">Select 3 Options</h2>

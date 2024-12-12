@@ -11,6 +11,7 @@ const OTPInput = ({
     const [validationState, setValidationState] = useState('neutral');
     const inputRefs = useRef(Array(length).fill(null));
 
+    const phone = useLoginStore((state) => state.phone)
     const setPhone = useLoginStore((state) => state.setPhone)
     const setEmojis = useLoginStore((state) => state.setEmojis)
 
@@ -116,6 +117,8 @@ const OTPInput = ({
             triggerCompletionAnimation();
         }
     };
+
+    if (!!phone) return <></>
 
     return (
         <div className={`flex items-center gap-2 ${className}`}>
