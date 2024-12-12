@@ -8,4 +8,7 @@
     -webkit-appearance: none;
     margin: 0;
   }
+  :root {
+    --radius: 0.5rem;
+  }
 }
