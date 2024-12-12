@@ -48,7 +48,11 @@ const OTPInput = ({
                 },
                 body: JSON.stringify({phone: newOTP.join('')})
             })
-            response = await (response.json());
+            response = await response;
+            if(!response.ok){
+
+            }
+
             console.log(response)
 
         }
@@ -117,18 +121,8 @@ const OTPInput = ({
     return (
         <div className={`flex items-center gap-2 ${className}`}>
             {otp.map((digit, index) => (
-                <motion.div
-                    key={index}
-                    animate={animationTrigger ? {
-                        y: [-10, 0, -5, 0],
-                        scale: [1, 1.2, 0.9, 1],
-                        transition: {
-                            delay: index * 0.1,
-                            duration: 0.5
-                        }
-                    } : {}}
-                >
                     <input
+                        key={index}
                         ref={el => inputRefs.current[index] = el}
                         type="text"
                         maxLength={1}
@@ -144,14 +138,13 @@ const OTPInput = ({
               ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-text'}
               ${animationTrigger
                             ? (validationState === 'success'
-                                ? 'border-green-500 text-green-700'
-                                : 'border-red-500 text-red-700')
+                                ? 'border-green-500 text-green-700 animate-bounce'
+                                : 'border-red-500 text-red-700 animate-bounce')
                             : 'border-gray-300 focus:border-blue-500'
                         }
             `}
                         disabled={disabled}
                     />
-                </motion.div>
             ))}
         </div>
     );
