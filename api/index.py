@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Column, Integer, String, TIMESTAMP, create_engine, func, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
@@ -73,6 +74,15 @@ class UserRecommend(BaseModel):
     recommended_by: int
 
 
+class LoginForm(BaseModel):
+    phone: str
+
+
+class VerifyLoginForm(BaseModel):
+    phone: str
+    code: str
+
+
 class UserResponse(UserCreate):
     id: int
     created_at: datetime
@@ -103,6 +113,18 @@ def get_db():
 # FastAPI App
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",  # React development server
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",  # If your backend is also running locally
+        "http://127.0.0.1:8000"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 # Helper Functions
 def create_session_cookie():
@@ -136,7 +158,7 @@ def create_user(
     return db_user
 
 
-@app.post("/api/py/recommend/", response_model=RecommendedUser)
+@app.post("/api/py/recommend/")
 def recommend_user(
         recommendation: UserRecommend,
         current_user: User = Depends(lambda: authenticate_user(user_id=1, db=next(get_db()))),
@@ -149,8 +171,7 @@ def recommend_user(
     )
     db.add(db_user)
     db.commit()
-    db.refresh(db_user)
-    return db_user
+    return {"message": "User Added Successfully"}
 
 
 @app.post("/api/py/approve/")
@@ -179,8 +200,8 @@ def approve_user(
 
 
 @app.post("/api/py/login/")
-def login(phone: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.phone == phone).first()
+def login(data: LoginForm, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.phone == data.phone).first()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
@@ -189,15 +210,15 @@ def login(phone: str, db: Session = Depends(get_db)):
     random.shuffle(random_emojies)
 
     user.last_login = func.now()
-    user.password = password
+    user.verification_code = password
     user.code_expiry = func.now() + timedelta(minutes=5)
     db.commit()
     return {"message": "Correct phone number", "password": "".join(random_emojies)}
 
 
 @app.post("/api/py/verify-login/")
-def verify_login(phone: str, code: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.phone == phone, User.verification_code == code).first()
+def verify_login(data: VerifyLoginForm, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.phone == data.phone, User.verification_code == data.code).first()
     if (user.code_expiry - func.now()).total_seconds() > 5:
         raise HTTPException(status_code=400, detail="Code expired")
     if not user:

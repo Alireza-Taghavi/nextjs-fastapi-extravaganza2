@@ -1,0 +1,27 @@
+# Test the create_user endpoint
+POST http://localhost:3000/api/py/users/
+Content-Type: application/json
+
+{
+    "name": "Matin",
+    "phone": "09371577242"
+}
+
+###
+
+# Test the login endpoint
+POST http://localhost:8000/api/py/login/
+Content-Type: application/json
+
+{
+    "phone": "09371577242"
+}
+###
+
+# Test the get_user endpoint
+GET http://localhost:8000/api/py/users/1
+
+###
+
+# Test the hello_fast_api endpoint
+GET http://localhost:8000/api/py/helloFastApi
