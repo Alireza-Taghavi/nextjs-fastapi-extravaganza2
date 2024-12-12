@@ -126,6 +126,7 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+
 # Helper Functions
 def create_session_cookie():
     return str(uuid.uuid4())
@@ -205,26 +206,35 @@ def login(data: LoginForm, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    random_emojies = generate_emojis(9)
-    password = ''.join(random_emojies[:3])
-    random.shuffle(random_emojies)
+    random_emojis = generate_emojis(9)
+    password = ''.join(random_emojis[:3])
+    random.shuffle(random_emojis)
 
-    user.last_login = func.now()
+    user.last_login = datetime.now()
     user.verification_code = password
-    user.code_expiry = func.now() + timedelta(minutes=5)
+    user.code_expiry = datetime.now() + timedelta(minutes=5)
     db.commit()
-    return {"message": "Correct phone number", "password": "".join(random_emojies)}
+    return {"message": "Correct phone number", "emojis": " - ".join(random_emojis)}
 
 
 @app.post("/api/py/verify-login/")
 def verify_login(data: VerifyLoginForm, db: Session = Depends(get_db)):
+    # Query the user
     user = db.query(User).filter(User.phone == data.phone, User.verification_code == data.code).first()
-    if (user.code_expiry - func.now()).total_seconds() > 5:
-        raise HTTPException(status_code=400, detail="Code expired")
+
+    # Check if the user exists first
     if not user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    user.last_login = func.now()
+
+    # Check if the code has expired
+    if not user.code_expiry or user.code_expiry <= datetime.now():
+        raise HTTPException(status_code=400, detail="Code expired")
+
+    # Update the last login timestamp
+    user.last_login = datetime.now()
     db.commit()
+
+    # Return success response
     return {"message": "Logged in successfully", "user": user.id}
 
 

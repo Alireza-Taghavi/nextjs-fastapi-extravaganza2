@@ -1,16 +1,18 @@
 'use client'
 import React, {useState, useRef} from 'react';
+import {useLoginStore} from "../../stores/user";
 
 const OTPInput = ({
                       length = 6,
                       className = '',
-                      disabled = false,
-                      onComplete = () => {
-                      }
+                      disabled = false
                   }) => {
     const [otp, setOTP] = useState(Array(length).fill(''));
     const [validationState, setValidationState] = useState('neutral');
     const inputRefs = useRef(Array(length).fill(null));
+
+    const setPhone = useLoginStore((state) => state.setPhone)
+    const setEmojis = useLoginStore((state) => state.setEmojis)
 
     const handleChange = async (index, value) => {
         // Validate input to only allow numbers
@@ -57,7 +59,7 @@ const OTPInput = ({
         setValidationState("neutral")
 
         // Call onComplete with validation result
-        onComplete(isValid);
+        if (isValid) setPhone(value)
     };
 
     // Simulated OTP validation function
@@ -70,9 +72,11 @@ const OTPInput = ({
             },
             body: JSON.stringify({phone: otpValue})
         })
-        response = await response;
-        console.log(otpValue)
-        return response.ok;
+        if (!response.ok) return false;
+        response = await response.json();
+        setEmojis(response.emojis.split(" - "))
+
+        return true;
     };
 
     const handleKeyDown = (index, e) => {
