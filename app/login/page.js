@@ -3,16 +3,13 @@ import VerificationInput from "../../components/login/verification-input";
 
 export default function Login() {
     return (
-        <main className="flex h-dvh flex-col items-center justify-center px-16">
-            <div className="flex">
+        <main className="flex items-center justify-center w-full h-full">
 
-                <OTPInput
-                    length={11}
-                />
-                <VerificationInput
-                />
-
-            </div>
+            <OTPInput
+                length={11}
+            />
+            <VerificationInput
+            />
         </main>
     )
 }

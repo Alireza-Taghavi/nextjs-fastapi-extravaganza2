@@ -32,7 +32,7 @@ const Countdown = ({ targetDateTime }) => {
 
   return (
     <div>
-      <h1>Countdown: {timeLeft > 0 ? formatTime(timeLeft) : "Time's up!"}</h1>
+      <p>Countdown: {timeLeft > 0 ? formatTime(timeLeft) : "Time's up!"}</p>
     </div>
   );
 };
