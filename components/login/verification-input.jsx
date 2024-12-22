@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import {useLoginStore} from "../../stores/user";
 
 const VerificationInput = () => {
+    const setPhone = useLoginStore((state) => state.setPhone);
     const router = useRouter();
     const [options, setOptions] = useState([]);
     const [selectedOptions, setSelectedOptions] = useState([]);
@@ -61,7 +62,7 @@ const VerificationInput = () => {
 
                 if (newAttempts === 0) {
                     // Redirect if no attempts left
-                    router.push('/game-over');
+                    setPhone(null);
                 } else {
                     // Reset selections
                     setSelectedOptions([]);
@@ -75,7 +76,7 @@ const VerificationInput = () => {
             setAttempts(newAttempts);
 
             if (newAttempts === 0) {
-                router.push('/game-over');
+                setPhone(null);
             } else {
                 // Reset selections
                 setSelectedOptions([]);

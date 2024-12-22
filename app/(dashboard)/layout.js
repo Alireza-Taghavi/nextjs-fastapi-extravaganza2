@@ -1,11 +1,11 @@
 import Header from "../../components/layout/header";
 
-export default function ({ children}) {
+export default function DashboardLayout ({ children}) {
 
     return (
         <>
             <Header/>
-            <main className="h-full w-full flex flex-col items-center">
+            <main className=" w-full flex flex-col items-center font-pt">
                 {children}
             </main>
         </>
