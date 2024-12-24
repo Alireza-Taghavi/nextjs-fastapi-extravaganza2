@@ -44,7 +44,7 @@ export default function RootLayout({
                 disableTransitionOnChange
             >
                 <div
-                    className={"flex flex-col max-w-7xl w-full items-center px-0 sm:px-4 md:px-16 xl:px-0 overflow-x-hidden"}>
+                    className={"flex flex-col max-w-7xl w-full items-center px-0 sm:px-4 md:px-16 xl:px-0 overflow-x-hidden h-full"}>
                     {children}
                 </div>
             </ThemeProvider>
