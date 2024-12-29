@@ -1,11 +1,12 @@
 "use client"
 import dynamic from "next/dynamic";
-import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "../../../components/ui/card";
-import {Button} from "../../../components/ui/button";
-import {Lock} from "lucide-react";
-import ThemeChart from "../../../components/theme-chart/theme-chart";
+import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "../../components/ui/card";
 
-const Countdown = dynamic(() => import('../../../components/countdown/Time'), {ssr: false})
+import {Lock} from "lucide-react";
+import ThemeChart from "../../components/theme-chart/theme-chart";
+import {Button} from "../../components/ui/button";
+import Link from 'next/link'
+const Countdown = dynamic(() => import('../../components/countdown/Time'), {ssr: false})
 
 export default function Dashboard() {
 
@@ -16,7 +17,9 @@ export default function Dashboard() {
             <Card className="col-span-1 md:col-span-2 md:row-span-3">
                 <Countdown targetDateTime={"2025-01-16T17:00:00"}/>
             </Card>
-            <Card className="col-span-1 md:row-span-3 md:col-span-2 ">readme</Card>
+            <Card className="col-span-1 md:row-span-3 md:col-span-2 flex justify-center items-center py-8">
+                <Link href={"/dashboard/readme"}><Button variant={"default"} size={"lg"}>Readme</Button></Link>
+            </Card>
             <div className="col-span-1 md:md:row-span-12 md:col-span-2 flex flex-col gap-2 md:gap-3">
                 <Card className="w-full md:h-2/5">add friend</Card>
                 <Card className="w-full md:h-3/5">list</Card>

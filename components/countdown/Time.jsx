@@ -42,7 +42,8 @@ const Countdown = ({targetDateTime}) => {
                         className="flex gap-1"><span>{formatTime(Math.floor((time / 1000) % 60))}</span><span>Seconds</span></span>
                 </div>
             </div>
-            <p>Thursday, January 16, 2025</p>
+            <p>{"Thursday, January 16, 2025 | 17:00"}</p>
+            <p>{"پنجشنبه ، 27 دی ، 1403  |  17:00"}</p>
         </div>
     );
 };

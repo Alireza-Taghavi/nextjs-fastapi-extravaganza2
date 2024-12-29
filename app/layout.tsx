@@ -40,7 +40,7 @@ export default function RootLayout({
 
     useEffect(() => {
         if (!!user) {
-            router.replace('/test');
+            router.replace('/dashboard');
         } else {
             router.replace('/login');
         }
