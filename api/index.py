@@ -85,8 +85,10 @@ class VerifyLoginForm(BaseModel):
 
 class UserResponse(UserCreate):
     id: int
-    created_at: datetime
-    last_login: datetime | None = None
+    role: str
+    recommended_by: int | None
+    quest: str | None
+    theme: str | None
 
     class Config:
         orm_mode = True
@@ -232,10 +234,21 @@ def verify_login(data: VerifyLoginForm, db: Session = Depends(get_db)):
 
     # Update the last login timestamp
     user.last_login = datetime.now()
+    # user.verification_code = ""
+    # user.code_expiry = datetime.now()
     db.commit()
 
     # Return success response
-    return {"message": "Logged in successfully", "user": user.id}
+    return {"message": "Logged in successfully",
+            "user": {
+                "id": user.id,
+                "phone": user.phone,
+                "last_login": user.last_login,
+                "role": user.role,
+                "recommended_by": user.recommended_by,
+                "quest": user.quest,
+                "theme": user.theme,
+            }}
 
 
 @app.get("/api/py/users/{user_id}", response_model=UserResponse)

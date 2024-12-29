@@ -1,10 +1,12 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {useLoginStore} from "../../stores/user";
+import {useLoginStore, useUserStore} from "../../stores/useUser";
+import {useStore} from "zustand";
 
 const VerificationInput = () => {
     const setPhone = useLoginStore((state) => state.setPhone);
+    const {setUser} = useStore(useUserStore, ((state) => state))
     const router = useRouter();
     const [options, setOptions] = useState([]);
     const [selectedOptions, setSelectedOptions] = useState([]);
@@ -54,7 +56,10 @@ const VerificationInput = () => {
 
             if (response.ok) {
                 // Redirect after successful submission
-                router.push('/success');
+                const data = await response.json()
+                const user = await data.user
+                setUser(user)
+                // router.push('/test');
             } else {
                 // Decrement attempts
                 const newAttempts = attempts - 1;
@@ -62,6 +67,8 @@ const VerificationInput = () => {
 
                 if (newAttempts === 0) {
                     // Redirect if no attempts left
+                    setSelectedOptions([])
+                    setAttempts(3)
                     setPhone(null);
                 } else {
                     // Reset selections
@@ -76,6 +83,8 @@ const VerificationInput = () => {
             setAttempts(newAttempts);
 
             if (newAttempts === 0) {
+                setSelectedOptions([])
+                setAttempts(3)
                 setPhone(null);
             } else {
                 // Reset selections

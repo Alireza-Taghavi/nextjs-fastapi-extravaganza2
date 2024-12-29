@@ -1,8 +1,13 @@
+"use client"
 import "./globals.css";
 import {Inter, PT_Serif} from "next/font/google";
 import {cn} from "@/lib/utils";
 import {ThemeProvider} from "@/components/layout/theme-provider";
 import localFont from 'next/font/local'
+import {useRouter} from "next/navigation";
+import {useLoginStore, useUserStore} from "@/stores/useUser";
+import {useEffect} from "react";
+import {useStore} from "zustand";
 
 const inter = Inter(
     {
@@ -24,19 +29,27 @@ const flurries = localFont({
 })
 
 
-export const metadata = {
-    title: "EXTRAVAGANZA 2",
-    description: "Somewhere Special",
-};
 
 export default function RootLayout({
                                        children,
                                    }: {
     children: React.ReactNode;
 }) {
+    const router = useRouter();
+    const {user, setUser} = useStore(useUserStore, (state) => state)
+
+    useEffect(() => {
+        if (!!user) {
+            router.replace('/test');
+        } else {
+            router.replace('/login');
+        }
+    }, [user, router]);
     return (
         <html lang="en">
-
+        <head>
+            <title>Extravaganza 2</title>
+        </head>
         <body className={cn(inter.variable, flurries.variable, ptSerif.variable, "flex h-dvh w-full flex-col items-center bg-background")}>{
             <ThemeProvider
                 attribute="class"

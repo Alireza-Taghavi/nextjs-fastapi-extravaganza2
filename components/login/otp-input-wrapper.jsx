@@ -2,7 +2,7 @@
 
 import React, {createContext, useEffect, useRef, useState} from 'react';
 
-import {useLoginStore} from '../../stores/user';
+import {useLoginStore} from '../../stores/useUser';
 import {InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator} from "../ui/input-otp";
 import {cn} from "../../lib/utils";
 
