@@ -27,7 +27,7 @@ const Countdown = ({targetDateTime}) => {
     };
 
     return (
-        <div className={"w-full flex flex-col items-center gap-2 py-4 text-md text-foreground"}>
+        <div className={"w-full flex flex-col items-center justify-center gap-2 text-md text-foreground"}>
             <div className="flex gap-10">
                 <div className="flex flex-col items-center gap-2">
                     <span className={"text-5xl"}>{Math.floor(time / (1000 * 60 * 60 * 24))}</span>
@@ -43,7 +43,7 @@ const Countdown = ({targetDateTime}) => {
                 </div>
             </div>
             <p>{"Thursday, January 16, 2025 | 17:00"}</p>
-            <p>{"پنجشنبه ، 27 دی ، 1403  |  17:00"}</p>
+            {/*<p>{"پنجشنبه ، 27 دی ، 1403  |  17:00"}</p>*/}
         </div>
     );
 };

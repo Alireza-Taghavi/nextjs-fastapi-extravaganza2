@@ -41,7 +41,7 @@ export default function Readme() {
 
     return (
         <div className="w-full flex flex-col text-pretty px-8 md:px-0 pt-6 pb-16 md:overflow-y-scroll overflow-x-hidden" dir={isPersian ? "rtl" : "ltr"}>
-            <div className={cn("mb-4 flex w-full flex-row-reverse")}>
+            <div className={cn("mb-4 flex w-full flex-row-reverse px-4")}>
                 <ToggleButton isPersian={isPersian} onClick={handleToggleLanguage} />
             </div>
 
@@ -224,5 +224,6 @@ export default function Readme() {
                 </div>
             )}
         </div>
+
     );
 }

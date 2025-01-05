@@ -3,9 +3,12 @@ import {Moon, Sun} from "lucide-react"
 import {Button} from "../ui/button";
 import {useTheme} from "next-themes";
 import Link from "next/link"
+import {useStore} from "zustand/index";
+import {useUserStore} from "../../stores/useUser";
+
 const Header = () => {
     const {setTheme, theme} = useTheme()
-
+    const {logout} = useStore(useUserStore, (state) => state)
     function handleTheme() {
         if (theme === "dark") {
             setTheme("light");
@@ -25,7 +28,7 @@ const Header = () => {
                 </Link>
             </div>
             <div className="flex items-center space-x-2">
-                <Button className={"rounded-full"}
+                <Button className={""}
                         variant="outline" size="icon" onClick={handleTheme}>
                     <Sun
                         className="absolute h-[1.2rem] w-[1.2rem]
@@ -36,6 +39,7 @@ const Header = () => {
                          duration-300
                          dark:opacity-60 transition-opacity opacity-0"/>
                 </Button>
+                <Button onClick={logout} variant={"outline"} size={"default"}>Logout</Button>
             </div>
         </header>
     )
