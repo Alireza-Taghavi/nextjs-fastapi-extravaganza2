@@ -210,11 +210,13 @@ export default function Readme() {
                     </Section>
 
                     <Section title="Coolest Person Award">
+                        {/* eslint-disable-next-line react/no-unescaped-entities */}
                         <p>The party's most active and creative participant will be crowned the <strong>Coolest
                             Person</strong> and receive a special prize after the event!</p>
                     </Section>
                     <Section title="Have Fun and Be Creative!">
                         <p>
+                            {/* eslint-disable-next-line react/no-unescaped-entities */}
                             Can't wait to cyall fuckers!! <br/>
                             See you there! 🎉<br/>
                             Love most of you,<br/>
