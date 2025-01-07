@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "../ui/button";
+import {Button} from "../ui/button";
 import {useEffect, useState} from "react";
 import axios from "axios";
 import {toast} from "../../hooks/use-toast";
@@ -24,7 +24,8 @@ export default function ThemeChart() {
         } catch (error) {
             console.error("Error fetching themes:", error);
             toast({
-                title:"Failed to load themes. Please try again later."});
+                title: "Failed to load themes. Please try again later."
+            });
         }
     };
 
@@ -41,57 +42,58 @@ export default function ThemeChart() {
 
             setUser(updatedUser)
             toast({
-                title:"Vote submitted successfully!"});
+                title: "Vote submitted successfully!"
+            });
 
             // Refresh the theme data to reflect the updated vote count
             fetchThemes();
         } catch (error) {
             console.error("Error submitting vote:", error);
             toast({
-                title:`Error: ${error.response?.data?.detail || "An error occurred"}`
-        });
+                title: `Error: ${error.response?.data?.detail || "An error occurred"}`
+            });
         }
     };
 
     // Fetch themes on component mount
     useEffect(() => {
         fetchThemes();
-        console.log(user)
-    }, [user]);
+    }, [user, maxVotes]);
 
 
-    return (<div className="w-full flex sm:flex-col justify-between h-48 sm:h-full gap-2">
-                {chartData.map((item, i) => (
-                    <div key={i} className={cn(user?.theme===item.id ? "" : "grayscale-[40%]"
-                        ,"flex flex-col-reverse sm:flex-row items-center gap-2 sm:gap-4 w-full")}>
-                        <Button className="w-full sm:w-16 border-red-800 border-2"
-                            disabled={user?.theme===item.id} onClick={()=>voteTheme(item.id ,user?.id)} variant={"outline"} size={"icon"} >
-                            {item.icon}
-                        </Button>
-                        <div className="flex-1 h-6 hidden sm:block">
-                            <div
-                                className="h-full border-4 border-dashed border-background "
-                                style={{
-                                    width: `${(item.votes / maxVotes) * 100}%`,
-                                    backgroundColor: item.fill,
-                                }}
-                            />
-                        </div>
-                        <div className="flex-1 w-4 sm:w-6 sm:hidden flex flex-col">
-                            <div
-                                className="w-full border-4 border-dashed border-background mt-auto"
-                                style={{
-                                    height: `${(item.votes / maxVotes) * 100}%`,
-                                    backgroundColor: item.fill,
-                                }}
-                            />
-                        </div>
-                        <div>
-                            + {String(item.prize).padStart(2, '0')}
-                        </div>
+    return (!!maxVotes ? (<div className="w-full flex sm:flex-col justify-between h-48 sm:h-full gap-2">
+            {chartData.map((item, i) => (
+                <div key={i} className={cn(user?.theme === item.id ? "" : "grayscale-[40%]"
+                    , "flex flex-col-reverse sm:flex-row items-center gap-2 sm:gap-4 w-full")}>
+                    <Button className={cn("w-full sm:h-7 sm:w-16 border-red-800 border-2", user?.theme === item.id ? "bg-gray-500 bg-opacity-40" : "")}
+                            disabled={user?.theme === item.id} onClick={() => voteTheme(item.id, user?.id)}
+                            variant={"outline"} size={"icon"}>
+                        {item.icon}
+                    </Button>
+                    <div className="flex-1 h-6 hidden sm:block">
+                        <div
+                            className={cn("h-full border-4 border-dashed border-background", user?.theme === item.id ? "" : "")}
+                            style={{
+                                width: `${(item.votes / maxVotes) * 100}%`,
+                                backgroundColor: item.fill,
+                            }}
+                        />
                     </div>
-                ))}
-            </div>
-    );
+                    <div className="flex-1 w-4 sm:w-6 sm:hidden flex flex-col">
+                        <div
+                            className="w-full border-4 border-dashed border-background mt-auto"
+                            style={{
+                                height: `${(item.votes / maxVotes) * 100}%`,
+                                backgroundColor: item.fill,
+                            }}
+                        />
+                    </div>
+                    <div>
+                        + {String(item.prize).padStart(2, '0')} 🪙
+                    </div>
+                </div>
+            ))}
+        </div>
+    ) : <p>Loading</p>);
 }
 

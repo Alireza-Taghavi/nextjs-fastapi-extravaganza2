@@ -108,10 +108,10 @@ const VerificationInput = () => {
                     <button
                         key={option}
                         onClick={() => handleSelection(option)}
-                        className={`w-full p-2 ${
+                        className={`w-full p-2 text-3xl bg-opacity-40 ${
                             selectedOptions.includes(option)
                                 ? 'bg-blue-500 text-white'
-                                : 'bg-gray-200 hover:bg-gray-300'
+                                : 'bg-gray-200 hover:bg-gray-500'
                         }`}
                     >
                         {option}

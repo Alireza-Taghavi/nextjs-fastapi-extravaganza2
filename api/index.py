@@ -1,16 +1,155 @@
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import Column, Integer, String, TIMESTAMP, create_engine, func, Enum, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session, relationship
-from pydantic import BaseModel, Field
-from datetime import datetime, timedelta
-from enum import Enum as PyEnum
-import random
-import uuid
-from typing import List, Dict
 import math
 import random
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, validator
+from typing import List, Optional
+from supabase import create_client, Client
+from enum import Enum as PyEnum
+from datetime import datetime, timedelta
+import re
+from typing import List, Dict
+import requests
+
+SUPABASE_URL = 'https://mtbvtlwhdyfbjbufxluh.supabase.co'
+SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10YnZ0bHdoZHlmYmpidWZ4bHVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczMzc2MzYwNywiZXhwIjoyMDQ5MzM5NjA3fQ.v-vJOW7Dl5WexOIRFTpegR_NG8MnsrY5aROpKP1yDGY'
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+
+class UserRole(PyEnum):
+    ADMIN = "admin"
+    HELPER = "helper"
+    GUEST = "guest"
+
+
+class UserCreate(BaseModel):
+    name: str
+    phone: str
+
+    @validator("name")
+    def validate_name(cls, value):
+        if not re.match(r"^[A-Z][a-zA-Z]{1,}$", value):
+            raise ValueError("Name must be at least 2 letters, start with an uppercase letter, and contain only "
+                             "English alphabets.")
+        return value
+
+    @validator("phone")
+    def validate_phone(cls, value):
+        if not re.match(r"^\d{11}$", value):
+            raise ValueError("Phone must be exactly 11 digits.")
+        return value
+
+
+class UserRecommend(BaseModel):
+    phone: str
+    name: str
+    recommended_by: int
+
+    @validator("name")
+    def validate_recommend_name(cls, value):
+        if not re.match(r"^[A-Z][a-zA-Z]{1,}$", value):
+            raise ValueError("Name must be at least 2 letters, start with an uppercase letter, and contain only "
+                             "English alphabets.")
+        return value
+
+    @validator("phone")
+    def validate_recommend_phone(cls, value):
+        if not re.match(r"^\d{11}$", value):
+            raise ValueError("Phone must be exactly 11 digits.")
+        return value
+
+
+class AcceptUser(BaseModel):
+    id: int
+    accept: bool
+
+
+@app.post("/api/py/users/")
+def create_user(user: UserCreate):
+    current_user_id = 1  # This should be dynamically retrieved in real cases.
+    if current_user_id != 1:
+        raise HTTPException(status_code=403, detail="Only admins can create users.")
+
+    data = {
+        "name": user.name,
+        "phone": user.phone,
+        "role": "guest"
+    }
+    existing_user_response = supabase.table("users").select("name").filter("phone", "eq", user.phone).execute()
+    if existing_user_response.data:
+        raise HTTPException(status_code=400, detail=f"{user.name} is already coming")
+
+    try:
+        response = supabase.table("users").insert(data).execute()
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"Some error")
+
+    return {"message": "User created successfully", "user": response.data[0]}
+
+
+@app.post("/api/py/recommend/")
+def recommend_user(recommendation: UserRecommend):
+    existing_user_response = supabase.table("users").select("name").filter("phone", "eq",
+                                                                           recommendation.phone).execute()
+    if existing_user_response.data:
+        raise HTTPException(status_code=400, detail=f"{existing_user_response.data[0]['name']} is already coming")
+
+    recommended_user_response = supabase.table("recommended_users").select("name").filter("phone", "eq",
+                                                                                          recommendation.phone).execute()
+    if recommended_user_response.data:
+        raise HTTPException(status_code=400, detail=f"{recommended_user_response.data[0]['name']} is already invited")
+
+    data = {
+        "name": recommendation.name,
+        "phone": recommendation.phone,
+        "recommended_by": recommendation.recommended_by
+    }
+    try:
+        supabase.table("recommended_users").insert(data).execute()
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"Some error")
+    return {"message": "User added successfully"}
+
+
+@app.post("/api/py/approve/")
+def approve_user(data: AcceptUser):
+    current_user_id = 1  # This should be dynamically retrieved in real cases.
+    if current_user_id != 1:
+        raise HTTPException(status_code=403, detail="Only admins can approve users.")
+
+    recommended_user_response = supabase.table("recommended_users").select("*").filter("id", "eq", data.id).execute()
+    if not recommended_user_response.data:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    recommended_user = recommended_user_response.data[0]
+    user_data = {
+        "name": recommended_user['name'],
+        "phone": recommended_user['phone'],
+        "role": "guest"
+    }
+    try:
+        supabase.table("users").insert(user_data).execute()
+        supabase.table("recommended_users").delete().filter("id", "eq", str(data.id)).execute()
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"Some error")
+
+    return {"message": "User approved and moved to users"}
 
 
 def apply_force_directed_layout(nodes: List[Dict], links: List[Dict],
@@ -102,19 +241,22 @@ def apply_force_directed_layout(nodes: List[Dict], links: List[Dict],
     return nodes
 
 
-def update_fastapi_get_users(db: Session):
+def update_fastapi_get_users():
     """
     Updated FastAPI endpoint function to include node positioning
     """
-    users = db.query(User).all()
-    nodes = [{"id": user.id, "name": user.name} for user in users]
+    users = supabase.table('users').select('*').execute()
+    users = users.data
+
+    # Create nodes and links with key-based access
+    nodes = [{"id": user["id"], "name": user["name"]} for user in users]
     links = [
-        {"source": user.recommended_by, "target": user.id}
+        {"source": user["recommended_by"], "target": user["id"]}
         for user in users
-        if user.recommended_by
+        if user["recommended_by"]
     ]
 
-    # Apply force-directed layout
+    # Assume apply_force_directed_layout is a function that calculates node positions
     nodes_with_positions = apply_force_directed_layout(nodes, links)
 
     return {"nodes": nodes_with_positions, "links": links}
@@ -131,70 +273,6 @@ def generate_emojis(n):
     return [chr(emoji) for emoji in emojis]
 
 
-# Database Configuration
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/extravaganza2"
-
-# Create engine with psycopg2 (synchronous driver)
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-
-# Enum for User Roles
-class UserRole(PyEnum):
-    ADMIN = "admin"
-    HELPER = "helper"
-    GUEST = "guest"
-
-
-# User Model (SQLAlchemy)
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    phone = Column(String(256), unique=True, nullable=False)
-    role = Column(Enum(UserRole), default=UserRole.GUEST, nullable=False)
-    recommended_by = Column(Integer, nullable=True, default=1)  # ID of the recommending user
-    quest = Column(String, nullable=True)
-    verification_code = Column(String, nullable=True)
-    code_expiry = Column(TIMESTAMP, nullable=True)
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    last_login = Column(TIMESTAMP, nullable=True)
-    # Relationship with Theme
-    theme = Column(Integer, nullable=True)
-
-
-class Theme(Base):
-    __tablename__ = "themes"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False, unique=True)
-    votes = Column(Integer, default=0)
-    fill = Column(String, nullable=True)  # Color
-    icon = Column(String, nullable=True)
-    prize = Column(Integer, nullable=True)
-
-
-class RecommendedUser(Base):
-    __tablename__ = "recommended_users"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    phone = Column(String(256), unique=True, nullable=False)
-    recommended_by = Column(Integer, nullable=True, default=1)  # ID of the recommending user
-    created_at = Column(TIMESTAMP, server_default=func.now())
-
-
-# Pydantic Models for Request/Response
-class UserCreate(BaseModel):
-    name: str
-    phone: str
-
-
-class UserRecommend(BaseModel):
-    phone: str
-    name: str
-    recommended_by: int
-
-
 class LoginForm(BaseModel):
     phone: str
 
@@ -204,268 +282,167 @@ class VerifyLoginForm(BaseModel):
     code: str
 
 
-class UserResponse(UserCreate):
-    id: int
-    role: str
-    recommended_by: int | None
-    quest: str | None
-    theme: int | None
-
-    class Config:
-        orm_mode = True
-
-
-class AcceptUser(BaseModel):
-    id: int
-    accept: bool
-
-
-# Initialize database
-Base.metadata.create_all(bind=engine)
-
-
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-# FastAPI App
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # React development server
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",  # If your backend is also running locally
-        "http://127.0.0.1:8000"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
-)
-
-
-# Helper Functions
-def create_session_cookie():
-    return str(uuid.uuid4())
-
-
-def authenticate_user(user_id: int, db: Session):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid session")
-    return user
-
-
-@app.post("/api/py/users/", response_model=UserResponse)
-def create_user(
-        user: UserCreate,
-        current_user: User = Depends(lambda: authenticate_user(user_id=1, db=next(get_db()))),  # Admin for now
-        db: Session = Depends(get_db),
-):
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can create users.")
-
-    db_user = User(
-        name=user.name,
-        phone=user.phone,
-        role=UserRole.GUEST,
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
-
-
-@app.post("/api/py/recommend/")
-def recommend_user(
-        recommendation: UserRecommend,
-        db: Session = Depends(get_db),
-):
-    user = db.query(User).filter(User.phone == recommendation.phone).first()
-    if user:
-        raise HTTPException(status_code=404, detail=f"{user.name} is already coming")
-
-    user = db.query(RecommendedUser).filter(RecommendedUser.phone == recommendation.phone).first()
-    if user:
-        raise HTTPException(status_code=404, detail=f"{user.name} is already invited")
-
-    db_user = RecommendedUser(
-        name=recommendation.name,
-        phone=recommendation.phone,
-        recommended_by=recommendation.recommended_by,
-    )
-    db.add(db_user)
-    db.commit()
-    return {"message": "User Added Successfully"}
-
-
-@app.post("/api/py/approve/")
-def approve_user(
-        data: AcceptUser,
-        current_user: User = Depends(lambda: authenticate_user(user_id=1, db=next(get_db()))),
-        db: Session = Depends(get_db),
-):
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can approve users.")
-
-    user = db.query(RecommendedUser).filter(RecommendedUser.id == data.id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found.")
-
-    db_user = User(
-        name=user.name,
-        phone=user.phone,
-        role=UserRole.GUEST,
-    )
-
-    db.add(db_user)
-    db.delete(user)
-    db.commit()
-    db.refresh(user)
-
-
-@app.post("/api/py/login/")
-def login(data: LoginForm, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.phone == data.phone).first()
-    if not user:
-        raise HTTPException(status_code=400, detail="Invalid credentials")
-
-    random_emojis = generate_emojis(9)
-    password = ''.join(random_emojis[:3])
-    random.shuffle(random_emojis)
-
-    user.last_login = datetime.now()
-    user.verification_code = password
-    user.code_expiry = datetime.now() + timedelta(minutes=5)
-    db.commit()
-    return {"message": "Correct phone number", "emojis": " - ".join(random_emojis)}
-
-
-@app.post("/api/py/verify-login/")
-def verify_login(data: VerifyLoginForm, db: Session = Depends(get_db)):
-    # Query the user
-    user = db.query(User).filter(User.phone == data.phone, User.verification_code == data.code).first()
-
-    # Check if the user exists first
-    if not user:
-        raise HTTPException(status_code=400, detail="Invalid credentials")
-
-    # Check if the code has expired
-    if not user.code_expiry or user.code_expiry <= datetime.now():
-        raise HTTPException(status_code=400, detail="Code expired")
-
-    # Update the last login timestamp
-    user.last_login = datetime.now()
-    # user.verification_code = ""
-    # user.code_expiry = datetime.now()
-    db.commit()
-
-    # Return success response
-    return {"message": "Logged in successfully",
-            "user": {
-                "id": user.id,
-                "phone": user.phone,
-                "last_login": user.last_login,
-                "role": user.role,
-                "recommended_by": user.recommended_by,
-                "quest": user.quest,
-                "theme": user.theme,
-            }}
-
-
-@app.get("/api/py/users/{user_id}")
-def get_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"message": "Logged in successfully",
-            "user": {
-                "id": user.id,
-                "phone": user.phone,
-                "last_login": user.last_login,
-                "role": user.role,
-                "recommended_by": user.recommended_by,
-                "quest": user.quest,
-                "theme": user.theme,
-            }}
-
-
 class VoteRequest(BaseModel):
     theme_id: int
     user_id: int
 
 
-@app.post("/api/py/vote-theme")
-def vote_theme(request: VoteRequest, db: Session = Depends(get_db)):
-    theme_id = request.theme_id
-    user_id = request.user_id
-    print(theme_id, user_id)
-    theme = db.query(Theme).filter(Theme.id == theme_id).first()
-    if not theme:
-        raise HTTPException(status_code=404, detail="Theme not found")
+def send_sms(phone_number, message):
+    api_key = "269556-sinatestapikey2212"
+    text = message
+    sender = "50004075013231"
+    recipient = phone_number
 
-    # Find the user
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+    url = f"https://api.sms-webservice.com/api/V3/Send?ApiKey={api_key}&Text={text}&Sender={sender}&Recipients={recipient}"
+
+    payload = {}
+    headers = {}
+
+    try:
+        response = requests.get(url, headers=headers, data=payload)
+        response.raise_for_status()
+        print(f"{phone_number}:{response.text}")
+    except requests.exceptions.HTTPError as err:
+        print(err)
+
+
+@app.post("/api/py/login/")
+def login(data: LoginForm):
+    response = supabase.table("users").select("*").filter("phone", "eq", data.phone).execute()
+    if not response.data:
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+
+    user = response.data[0]
+    random_emojis = generate_emojis(9)
+    password = ''.join(random_emojis[:3])
+    random.shuffle(random_emojis)
+
+    update_data = {
+        "last_login": datetime.now().isoformat(),
+        "verification_code": password,
+        "code_expiry": (datetime.now() + timedelta(minutes=5)).isoformat()
+    }
+    supabase.table("users").update(update_data).filter("id", "eq", user["id"]).execute()
+
+    response = send_sms(data.phone, password)
+    if response:
+        print(f"SMS sent successfully to: {data.phone} :", response)
+    else:
+        print(f"Failed to send SMS to {data.phone}")
+
+    return {"message": "Correct phone number", "emojis": " - ".join(random_emojis)}
+
+
+@app.post("/api/py/verify-login/")
+def verify_login(data: VerifyLoginForm):
+    response = supabase.table("users").select("*").filter("phone", "eq", data.phone).filter("verification_code", "eq",
+                                                                                            data.code).execute()
+    if not response.data:
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+
+    user = response.data[0]
+    if not user.get("code_expiry") or datetime.fromisoformat(user["code_expiry"]) <= datetime.now():
+        raise HTTPException(status_code=400, detail="Code expired")
+
+    update_data = {
+        "last_login": datetime.now().isoformat(),
+        "verification_code": "",
+        "code_expiry": None
+    }
+    supabase.table("users").update(update_data).filter("id", "eq", user["id"]).execute()
+
+    return {
+        "message": "Logged in successfully",
+        "user": {
+            "id": user["id"],
+            "phone": user["phone"],
+            "last_login": user["last_login"],
+            "role": user["role"],
+            "recommended_by": user.get("recommended_by"),
+            "quest": user.get("quest"),
+            "theme": user.get("theme"),
+        }
+    }
+
+
+@app.get("/api/py/users/{user_id}")
+def get_user(user_id: int):
+    response = supabase.table("users").select("*").filter("id", "eq", str(user_id)).execute()
+    if not response.data:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Update the user's vote
-    if user.theme:
-        # Undo the previous vote
-        old_theme = db.query(Theme).filter(Theme.id == user.theme).first()
-        if old_theme:
-            old_theme.votes -= 1
+    user = response.data[0]
+    return {
+        "message": "User retrieved successfully",
+        "user": {
+            "id": user["id"],
+            "phone": user["phone"],
+            "last_login": user["last_login"],
+            "role": user["role"],
+            "recommended_by": user.get("recommended_by"),
+            "quest": user.get("quest"),
+            "theme": user.get("theme"),
+        }
+    }
 
-    user.theme = theme.id
-    theme.votes += 1
 
-    # Recalculate prizes based on updated votes
-    recalculate_prizes(db)
+@app.post("/api/py/vote-theme")
+def vote_theme(request: VoteRequest):
+    theme_response = supabase.table("themes").select("*").filter("id", "eq", str(request.theme_id)).execute()
+    if not theme_response.data:
+        raise HTTPException(status_code=404, detail="Theme not found")
 
-    db.commit()
+    user_response = supabase.table("users").select("*").filter("id", "eq", str(request.user_id)).execute()
+    if not user_response.data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user = user_response.data[0]
+    theme = theme_response.data[0]
+
+    if user.get("theme"):
+        old_theme_response = supabase.table("themes").select("*").filter("id", "eq", user["theme"]).execute()
+        if old_theme_response.data:
+            old_theme = old_theme_response.data[0]
+            old_theme["votes"] -= 1
+            supabase.table("themes").update({"votes": old_theme["votes"]}).filter("id", "eq", old_theme["id"]).execute()
+
+    user_update_data = {"theme": theme["id"]}
+    theme_update_data = {"votes": theme["votes"] + 1}
+    supabase.table("users").update(user_update_data).filter("id", "eq", user["id"]).execute()
+    supabase.table("themes").update(theme_update_data).filter("id", "eq", theme["id"]).execute()
+
+    recalculate_prizes()
     return {"message": "Vote submitted successfully"}
 
 
-def recalculate_prizes(db: Session):
-    themes = db.query(Theme).all()
-    total_votes = sum(theme.votes for theme in themes)
-    total_prize_pool = 4 * len(themes)  # 4 "gold" prizes per theme
+def recalculate_prizes():
+    themes_response = supabase.table("themes").select("*").execute()
+    themes = themes_response.data
+
+    total_votes = sum(theme["votes"] for theme in themes)
+    total_prize_pool = 4 * len(themes)
 
     if total_votes == 0:
         for theme in themes:
-            theme.prize = 0
-        db.commit()
+            theme["prize"] = 0
+            supabase.table("themes").update({"prize": 0}).filter("id", "eq", theme["id"]).execute()
         return
 
-    # Calculate rarity-based prize distribution
     for theme in themes:
-        # Themes with no votes should get the max possible prize
-        if theme.votes == 0:
-            theme.prize = total_prize_pool
+        if theme["votes"] == 0:
+            theme["prize"] = total_prize_pool
         else:
-            rarity_score = 1 / theme.votes  # Less votes -> higher rarity score
-            theme.prize = int(total_prize_pool * (rarity_score / sum(1 / max(1, t.votes) for t in themes)))
-
-    db.commit()
+            rarity_score = 1 / theme["votes"]
+            theme["prize"] = int(total_prize_pool * (rarity_score / sum(1 / max(1, t["votes"]) for t in themes)))
+        supabase.table("themes").update({"prize": theme["prize"]}).filter("id", "eq", theme["id"]).execute()
 
 
 @app.get("/api/py/themes")
-def get_themes(db: Session = Depends(get_db)):
-    themes = db.query(Theme).all()
-    return themes
+def get_themes():
+    response = supabase.table("themes").select("*").execute()
+    return response.data
 
 
 @app.get("/api/py/get-users")
-def get_users(db: Session = Depends(get_db)):
-    return update_fastapi_get_users(db)
-
-
-@app.get("/api/py/helloFastApi")
-def hello_fast_api():
-    return {"message": "Hello from FastAPI"}
+def get_users():
+    return update_fastapi_get_users()

@@ -3,7 +3,7 @@ POST http://localhost:3000/api/py/users/
 Content-Type: application/json
 
 {
-    "name": "Matin",
+    "name": "Matins",
     "phone": "09371577242"
 }
 
@@ -19,7 +19,7 @@ Content-Type: application/json
 ###
 
 # Test the get_user endpoint
-GET http://localhost:8000/api/py/users/1
+GET http://localhost:3000/api/py/users/1
 
 ###
 
