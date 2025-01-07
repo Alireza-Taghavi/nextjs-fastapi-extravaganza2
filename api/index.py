@@ -1,15 +1,15 @@
 import math
 import random
-from fastapi import FastAPI, Depends, HTTPException
+import re
+from datetime import datetime, timedelta
+from enum import Enum as PyEnum
+from typing import List, Dict
+
+import requests
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, validator
-from typing import List, Optional
 from supabase import create_client, Client
-from enum import Enum as PyEnum
-from datetime import datetime, timedelta
-import re
-from typing import List, Dict
-import requests
 
 SUPABASE_URL = 'https://mtbvtlwhdyfbjbufxluh.supabase.co'
 SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10YnZ0bHdoZHlmYmpidWZ4bHVoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczMzc2MzYwNywiZXhwIjoyMDQ5MzM5NjA3fQ.v-vJOW7Dl5WexOIRFTpegR_NG8MnsrY5aROpKP1yDGY'
