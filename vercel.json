@@ -1,5 +1,5 @@
 {
   "functions": {
-    "app/**/*.[jt]s": { "runtime": "vercel-deno@3.1.0" }
+    "api/**/*.[jt]s": { "runtime": "vercel-deno@3.1.0" }
   }
 }
