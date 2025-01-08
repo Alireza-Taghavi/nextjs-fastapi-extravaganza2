@@ -49,6 +49,7 @@ export default function RootLayout({
         <html lang="en">
         <head>
             <title>Extravaganza 2</title>
+            <meta property="description" content="Place of Memories"/>
         </head>
         <body className={cn(inter.variable, flurries.variable, ptSerif.variable, "flex h-dvh w-full flex-col items-center bg-background")}>{
             <ThemeProvider
